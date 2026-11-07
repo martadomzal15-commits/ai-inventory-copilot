@@ -58,7 +58,7 @@ with tab1:
         color=alt.Color('Seria:N', scale=alt.Scale(domain=['Rzeczywisty popyt', 'MA4', 'LightGBM'], range=['#d62728', '#1f77b4', '#2ca02c']), legend=alt.Legend(orient='top', title=None)),
         strokeDash=alt.StrokeDash('Seria:N', scale=alt.Scale(domain=['Rzeczywisty popyt', 'MA4', 'LightGBM'], range=[[1, 0], [5, 3], [5, 3]]), legend=None)), width='stretch')
     kat = te.groupby('category').apply(lambda x: pd.Series({'MA4': mape(x.demand, x.ma4), 'LightGBM': mape(x.demand, x.lgb)}), include_groups=False).round(1)
-    st.subheader('MAPE wg kategorii (%)'); st.bar_chart(kat, stack=False)
+    st.subheader('MAPE wg kategorii (%)'); st.bar_chart(kat[['MA4', 'LightGBM']], stack=False, color=['#1f77b4', '#2ca02c'])
 
 # ---------- 2. rekomendacje ----------
 with tab2:
@@ -82,9 +82,13 @@ with tab3:
         c[0].metric('Średni zapas (zł)', f'{b.zapas_sr_zl:,.0f}'.replace(',', ' '), f'{(b.zapas_sr_zl/a.zapas_sr_zl-1)*100:.0f}% vs AS-IS', delta_color='inverse')
         c[1].metric('Fill rate', f'{b.fill_rate*100:.1f}%', f'{(b.fill_rate-a.fill_rate)*100:+.1f} pp vs AS-IS')
         c[2].metric('Utracona marża (zł)', f'{b.utracona_marza_zl:,.0f}'.replace(',', ' '), f'{b.utracona_marza_zl-a.utracona_marza_zl:,.0f}'.replace(',', ' '), delta_color='inverse')
-        st.dataframe(pod.rename(index={'ASIS': 'AS-IS', 'AI': 'AI'}), width="stretch")
-        kz = wynik.pivot_table(index='category', columns='scenariusz', values='zapas_sr_zl', aggfunc='sum').rename(columns={'ASIS': 'AS-IS'}).round(0)
-        st.subheader('Średnia wartość zapasu wg kategorii (zł)'); st.bar_chart(kz, stack=False)
+        tp = pod.rename(index={'ASIS': 'AS-IS', 'AI': 'AI'}).loc[['AS-IS', 'AI']].copy()
+        tp['fill_rate'] = (tp['fill_rate'] * 100).round(1).astype(str) + '%'
+        tp = tp.round({'zapas_sr_zl': 0, 'odpisy_zl': 0, 'utracona_marza_zl': 0}).astype({'zapas_sr_zl': int, 'odpisy_zl': int, 'utracona_marza_zl': int})
+        tp.columns = ['Średni zapas (zł)', 'Odpisy (zł)', 'Utracona marża (zł)', 'Fill rate']
+        st.dataframe(tp, width="stretch")
+        kz = wynik.pivot_table(index='category', columns='scenariusz', values='zapas_sr_zl', aggfunc='sum').rename(columns={'ASIS': 'AS-IS'}).round(0)[['AS-IS', 'AI']]
+        st.subheader('Średnia wartość zapasu wg kategorii (zł)'); st.bar_chart(kz, stack=False, color=['#7f7f7f', '#ff7f0e'])
         st.caption('AS-IS to założony proces (stała średnia popytu, duże partie, bez uwzględnienia dostawcy), a nie dane NEUCA. Ten sam popyt i te same losowania dostaw w obu scenariuszach; wynik = średnia z 30 przebiegów. '
                    'Odpisy w oknie 180 dni nie różnią się (krótki okres wobec terminów ważności).')
 
