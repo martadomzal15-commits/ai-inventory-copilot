@@ -144,7 +144,10 @@ def rekomendacje(test, te, z=Z, review=7):
             w_drodze=round(c.on_order_units), punkt_zamowienia=round(rop), poziom_docelowy=round(S), pokrycie_dni=round(min(pokrycie, 999)),
             dni_do_waznosci_najstarszej=int(c.days_to_expiry_oldest), rekomendacja=rek, ilosc_do_zamowienia=q,
             ryzyko=', '.join(ryzyko) if ryzyko else '-', wartosc_zapasu_zl=round(c.stock_end * c.unit_cost_pln)))
-    return pd.DataFrame(rows).sort_values(['rekomendacja', 'wartosc_zapasu_zl'], ascending=[True, False]).reset_index(drop=True)
+    df = pd.DataFrame(rows)
+    kol = {'ZAMÓW': 0, 'WSTRZYMAJ / ZMNIEJSZ ZAPAS': 1, 'OK': 2}
+    df['_k'] = df['rekomendacja'].map(kol)
+    return df.sort_values(['_k', 'wartosc_zapasu_zl'], ascending=[True, False]).drop(columns='_k').reset_index(drop=True)
 
 def roi(delta_zapas, delta_marza, odpisy_plik, zal, dni=180):
     """zal: koszt_kapitalu, koszt_utrzymania, realizacja, odzysk_marzy, unikane_odpisy, wdrozenie, utrzymanie, dyskonto. Zwraca dict wyników."""
