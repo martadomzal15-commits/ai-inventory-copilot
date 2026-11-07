@@ -1,5 +1,5 @@
 import io
-import numpy as np, pandas as pd, streamlit as st
+import numpy as np, pandas as pd, streamlit as st, altair as alt
 from copilot import (wczytaj_dane, do_tygodni, trenuj_i_prognozuj, metryki, mape, symuluj, podsumowanie, rekomendacje, roi)
 
 st.set_page_config(page_title='AI Inventory Copilot', page_icon='📦', layout='wide')
@@ -58,7 +58,11 @@ with tab1:
         color=alt.Color('Seria:N', scale=alt.Scale(domain=['Rzeczywisty popyt', 'MA4', 'LightGBM'], range=['#d62728', '#1f77b4', '#2ca02c']), legend=alt.Legend(orient='top', title=None)),
         strokeDash=alt.StrokeDash('Seria:N', scale=alt.Scale(domain=['Rzeczywisty popyt', 'MA4', 'LightGBM'], range=[[1, 0], [5, 3], [5, 3]]), legend=None)), width='stretch')
     kat = te.groupby('category').apply(lambda x: pd.Series({'MA4': mape(x.demand, x.ma4), 'LightGBM': mape(x.demand, x.lgb)}), include_groups=False).round(1)
-    st.subheader('MAPE wg kategorii (%)'); st.bar_chart(kat[['MA4', 'LightGBM']], stack=False, color=['#1f77b4', '#2ca02c'])
+    st.subheader('MAPE wg kategorii (%)'); 
+    kl = kat[['MA4', 'LightGBM']].reset_index().melt('category', var_name='Model', value_name='mape')
+    st.altair_chart(alt.Chart(kl).mark_bar().encode(x=alt.X('category:N', title=None, axis=alt.Axis(labelAngle=-90)), xOffset='Model:N',
+        y=alt.Y('mape:Q', title='MAPE (%)', scale=alt.Scale(domain=[0, 40], nice=False)),
+        color=alt.Color('Model:N', scale=alt.Scale(domain=['MA4', 'LightGBM'], range=['#1f77b4', '#2ca02c']), legend=alt.Legend(orient='top', title=None))), width='stretch')
 
 # ---------- 2. rekomendacje ----------
 with tab2:
@@ -88,7 +92,11 @@ with tab3:
         tp.columns = ['Średni zapas (zł)', 'Odpisy (zł)', 'Utracona marża (zł)', 'Fill rate']
         st.dataframe(tp, width="stretch")
         kz = wynik.pivot_table(index='category', columns='scenariusz', values='zapas_sr_zl', aggfunc='sum').rename(columns={'ASIS': 'AS-IS'}).round(0)[['AS-IS', 'AI']]
-        st.subheader('Średnia wartość zapasu wg kategorii (zł)'); st.bar_chart(kz, stack=False, color=['#7f7f7f', '#ff7f0e'])
+        st.subheader('Średnia wartość zapasu wg kategorii (zł)'); 
+        kzl = kz.reset_index().melt('category', var_name='Scenariusz', value_name='zapas')
+        st.altair_chart(alt.Chart(kzl).mark_bar().encode(x=alt.X('category:N', title=None, axis=alt.Axis(labelAngle=-90)), xOffset='Scenariusz:N',
+            y=alt.Y('zapas:Q', title='Zapas (zł)', scale=alt.Scale(zero=True)),
+            color=alt.Color('Scenariusz:N', scale=alt.Scale(domain=['AS-IS', 'AI'], range=['#7f7f7f', '#ff7f0e']), legend=alt.Legend(orient='top', title=None))), width='stretch')
         st.caption('AS-IS to założony proces (stała średnia popytu, duże partie, bez uwzględnienia dostawcy), a nie dane NEUCA. Ten sam popyt i te same losowania dostaw w obu scenariuszach; wynik = średnia z 30 przebiegów. '
                    'Odpisy w oknie 180 dni nie różnią się (krótki okres wobec terminów ważności).')
 
