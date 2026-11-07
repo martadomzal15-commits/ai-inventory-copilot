@@ -6,10 +6,16 @@ FEATURES = ['lag_1','lag_2','lag_4','lag_52','ma4','std4','woy','month','sku_num
 def wczytaj_dane(hist, test):
     """hist/test: ścieżka albo obiekt pliku. Wymagane kolumny: date, sku_id, sku_name, category, demand_units."""
     h = pd.read_csv(hist, parse_dates=['date']); t = pd.read_csv(test, parse_dates=['date'])
-    for d in (h, t):
+    for nazwa, d in (('historii', h), ('bieżącym', t)):
+        if len(d) == 0: raise ValueError(f'Plik {nazwa} jest pusty.')
         miss = {'date','sku_id','sku_name','category','demand_units'} - set(d.columns)
-        if miss: raise ValueError(f'Brak kolumn: {miss}')
+        if miss: raise ValueError(f'W pliku {nazwa} brakuje kolumn: {", ".join(sorted(miss))}.')
     return h, t
+
+KOLUMNY_SYMULACJA = ['stock_start','stock_end','on_order_units','delivered_units','days_to_expiry_oldest','lead_time_days',
+                     'lead_time_sigma','fulfillment_rate','shelf_life_days','is_deficit','price_pln','unit_cost_pln']
+def brakujace_kolumny_symulacji(test):
+    return [k for k in KOLUMNY_SYMULACJA if k not in test.columns]
 
 def do_tygodni(df):
     """Tygodnie wtorek-poniedziałek; niepełne tygodnie odrzucone."""
@@ -34,6 +40,10 @@ def sezonowe_sku(train, prog=1.25):
 
 def trenuj_i_prognozuj(w_hist, w_test):
     """Uczy na historii, zwraca prognozę 1 tydzień do przodu dla okresu testowego: ma4, lgb, hyb."""
+    if w_hist['week'].nunique() < 60:
+        raise ValueError(f"Historia jest za krótka: potrzeba co najmniej 60 pełnych tygodni (ok. 14 miesięcy), jest {w_hist['week'].nunique()}.")
+    if w_test['week'].nunique() < 4:
+        raise ValueError('Plik bieżący jest za krótki: potrzeba co najmniej 4 pełnych tygodni (wtorek–poniedziałek).')
     all_ = cechy(pd.concat([w_hist, w_test], ignore_index=True))
     split = w_test['week'].min()
     tr = all_[(all_['week'] < split)].dropna(subset=FEATURES); te = all_[all_['week'] >= split].copy()
