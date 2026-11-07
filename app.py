@@ -53,12 +53,12 @@ with tab1:
     sku = st.selectbox('SKU', te.sort_values('sku_name').sku_name.unique())
     d = te[te.sku_name == sku].set_index('week')[['demand', 'ma4', 'lgb']].rename(columns={'demand': 'Rzeczywisty popyt', 'ma4': 'MA4', 'lgb': 'LightGBM'})
     import altair as alt
-    dl = d.reset_index().melt('week', var_name='Seria', value_name='Popyt (szt./tydz.)')
-    st.altair_chart(alt.Chart(dl).mark_line().encode(x=alt.X('week:T', title='Tydzień'), y='Popyt (szt./tydz.):Q',
+    dl = d.reset_index().melt('week', var_name='Seria', value_name='popyt')
+    st.altair_chart(alt.Chart(dl).mark_line().encode(x=alt.X('week:T', title='Tydzień'), y=alt.Y('popyt:Q', title='Popyt (szt. na tydzień)'),
         color=alt.Color('Seria:N', scale=alt.Scale(domain=['Rzeczywisty popyt', 'MA4', 'LightGBM'], range=['#d62728', '#1f77b4', '#2ca02c']), legend=alt.Legend(orient='top', title=None)),
-        strokeDash=alt.condition(alt.datum.Seria == 'Rzeczywisty popyt', alt.value([1, 0]), alt.value([5, 3]))), width='stretch')
+        strokeDash=alt.StrokeDash('Seria:N', scale=alt.Scale(domain=['Rzeczywisty popyt', 'MA4', 'LightGBM'], range=[[1, 0], [5, 3], [5, 3]]), legend=None)), width='stretch')
     kat = te.groupby('category').apply(lambda x: pd.Series({'MA4': mape(x.demand, x.ma4), 'LightGBM': mape(x.demand, x.lgb)}), include_groups=False).round(1)
-    st.subheader('MAPE wg kategorii (%)'); st.bar_chart(kat)
+    st.subheader('MAPE wg kategorii (%)'); st.bar_chart(kat, stack=False)
 
 # ---------- 2. rekomendacje ----------
 with tab2:
@@ -84,7 +84,7 @@ with tab3:
         c[2].metric('Utracona marża (zł)', f'{b.utracona_marza_zl:,.0f}'.replace(',', ' '), f'{b.utracona_marza_zl-a.utracona_marza_zl:,.0f}'.replace(',', ' '), delta_color='inverse')
         st.dataframe(pod.rename(index={'ASIS': 'AS-IS', 'AI': 'AI'}), width="stretch")
         kz = wynik.pivot_table(index='category', columns='scenariusz', values='zapas_sr_zl', aggfunc='sum').rename(columns={'ASIS': 'AS-IS'}).round(0)
-        st.subheader('Średnia wartość zapasu wg kategorii (zł)'); st.bar_chart(kz)
+        st.subheader('Średnia wartość zapasu wg kategorii (zł)'); st.bar_chart(kz, stack=False)
         st.caption('AS-IS to założony proces (stała średnia popytu, duże partie, bez uwzględnienia dostawcy), a nie dane NEUCA. Ten sam popyt i te same losowania dostaw w obu scenariuszach; wynik = średnia z 30 przebiegów. '
                    'Odpisy w oknie 180 dni nie różnią się (krótki okres wobec terminów ważności).')
 
