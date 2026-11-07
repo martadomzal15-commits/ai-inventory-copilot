@@ -52,7 +52,11 @@ with tab1:
                'Na tych danych prosta średnia MA4 jest równie dobra jak model ML – różnice poniżej ok. 1 pp mieszczą się w szumie.')
     sku = st.selectbox('SKU', te.sort_values('sku_name').sku_name.unique())
     d = te[te.sku_name == sku].set_index('week')[['demand', 'ma4', 'lgb']].rename(columns={'demand': 'Rzeczywisty popyt', 'ma4': 'MA4', 'lgb': 'LightGBM'})
-    st.line_chart(d)
+    import altair as alt
+    dl = d.reset_index().melt('week', var_name='Seria', value_name='Popyt (szt./tydz.)')
+    st.altair_chart(alt.Chart(dl).mark_line().encode(x=alt.X('week:T', title='Tydzień'), y='Popyt (szt./tydz.):Q',
+        color=alt.Color('Seria:N', scale=alt.Scale(domain=['Rzeczywisty popyt', 'MA4', 'LightGBM'], range=['#d62728', '#1f77b4', '#2ca02c']), legend=alt.Legend(orient='top', title=None)),
+        strokeDash=alt.condition(alt.datum.Seria == 'Rzeczywisty popyt', alt.value([1, 0]), alt.value([5, 3]))), width='stretch')
     kat = te.groupby('category').apply(lambda x: pd.Series({'MA4': mape(x.demand, x.ma4), 'LightGBM': mape(x.demand, x.lgb)}), include_groups=False).round(1)
     st.subheader('MAPE wg kategorii (%)'); st.bar_chart(kat)
 
