@@ -1,6 +1,6 @@
 import io
 import numpy as np, pandas as pd, streamlit as st, altair as alt
-from copilot import (wczytaj_dane, do_tygodni, trenuj_i_prognozuj, metryki, mape, symuluj, podsumowanie, rekomendacje, roi)
+from copilot import (brakujace_kolumny_symulacji, wczytaj_dane, do_tygodni, trenuj_i_prognozuj, metryki, mape, symuluj, podsumowanie, rekomendacje, roi)
 
 st.set_page_config(page_title='AI Inventory Copilot', page_icon='📦', layout='wide')
 st.title('📦 AI Inventory Copilot')
@@ -37,10 +37,14 @@ except Exception as e:
 def sym(h_bytes, t_bytes):
     h, t, te_, _ = policz(h_bytes, t_bytes)
     return symuluj(h, t, te_, n_sim=30)
-try:
-    wynik = sym(bajty(f_h), bajty(f_t)); pod = podsumowanie(wynik)
-except Exception as e:
-    st.warning(f'Symulacja niedostępna dla tych danych: {e}'); wynik = None
+brak = brakujace_kolumny_symulacji(test); wynik = None
+if brak:
+    st.info('Prognoza popytu działa, ale rekomendacje, symulacja i ROI wymagają w pliku bieżącym dodatkowych kolumn: ' + ', '.join(brak) + '.')
+else:
+    try:
+        wynik = sym(bajty(f_h), bajty(f_t)); pod = podsumowanie(wynik)
+    except Exception as e:
+        st.warning(f'Symulacja niedostępna dla tych danych: {e}'); wynik = None
 
 tab1, tab2, tab3, tab4 = st.tabs(['📈 Prognoza popytu', '✅ Rekomendacje', '⚖️ AS-IS vs AI', '💰 ROI'])
 
@@ -66,6 +70,7 @@ with tab1:
 
 # ---------- 2. rekomendacje ----------
 with tab2:
+    if brak: st.info('Rekomendacje wymagają dodatkowych kolumn w pliku bieżącym (patrz komunikat nad zakładkami).'); st.stop()
     try:
         rek = rekomendacje(test, te)
         c = st.columns(4)
