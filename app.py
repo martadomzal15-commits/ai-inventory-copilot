@@ -46,14 +46,20 @@ else:
     except Exception as e:
         st.warning(f'Symulacja niedostępna dla tych danych: {e}'); wynik = None
 
+
+def opis_wyniku(m):
+    d = m['LightGBM'] - m['MA4']  # >0: MA4 lepsza
+    if abs(d) < 1: return 'Na tych danych MA4 i model ML są porównywalne – różnica poniżej 1 pp mieści się w szumie jednego podziału train/test.'
+    if d >= 1: return f'Na tych danych prosta średnia MA4 jest lepsza od LightGBM o {d:.1f} pp.'
+    return f'Na tych danych LightGBM jest lepszy od MA4 o {-d:.1f} pp (jeden podział train/test – wynik wymaga potwierdzenia).'
+
 tab1, tab2, tab3, tab4 = st.tabs(['📈 Prognoza popytu', '✅ Rekomendacje', '⚖️ AS-IS vs AI', '💰 ROI'])
 
 # ---------- 1. prognoza ----------
 with tab1:
     m = metryki(te); c = st.columns(3)
     for col, (k, v) in zip(c, m.items()): col.metric(f'MAPE – {k}', f'{v}%')
-    st.caption(f'Prognoza na tydzień do przodu, {te.week.nunique()} tygodni testowych, {te.sku_id.nunique()} SKU. SKU sezonowych (reguła z danych uczących): {len(sez)}. '
-               'Na tych danych prosta średnia MA4 jest równie dobra jak model ML – różnice poniżej ok. 1 pp mieszczą się w szumie.')
+    st.caption(f'Prognoza na tydzień do przodu, {te.week.nunique()} tygodni testowych, {te.sku_id.nunique()} SKU. SKU sezonowych (reguła z danych uczących): {len(sez)}. ' + opis_wyniku(m))
     sku = st.selectbox('SKU', te.sort_values('sku_name').sku_name.unique())
     d = te[te.sku_name == sku].set_index('week')[['demand', 'ma4', 'lgb']].rename(columns={'demand': 'Rzeczywisty popyt', 'ma4': 'MA4', 'lgb': 'LightGBM'})
     import altair as alt
