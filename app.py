@@ -70,8 +70,8 @@ with tab1:
 
 # ---------- 2. rekomendacje ----------
 with tab2:
-    if brak: st.info('Rekomendacje wymagają dodatkowych kolumn w pliku bieżącym (patrz komunikat nad zakładkami).'); st.stop()
     try:
+        if brak: raise ValueError('wymagane są dodatkowe kolumny w pliku bieżącym (lista w komunikacie nad zakładkami)')
         rek = rekomendacje(test, te)
         c = st.columns(4)
         c[0].metric('Do zamówienia', int((rek.rekomendacja == 'ZAMÓW').sum())); c[1].metric('Do wstrzymania / zmniejszenia', int(rek.rekomendacja.str.startswith('WSTRZ').sum()))
