@@ -33,6 +33,9 @@ try:
 except Exception as e:
     st.error(f'Nie udało się przetworzyć danych: {e}'); st.stop()
 
+mag = ', '.join(sorted(test['magazine'].dropna().astype(str).unique())) if 'magazine' in test.columns else 'nie podano (brak kolumny magazine)'
+st.markdown(f"**Wczytane dane:** magazyn **{mag}** · {test['sku_id'].nunique()} SKU · historia {hist['date'].min():%d.%m.%Y}–{hist['date'].max():%d.%m.%Y} · okres bieżący {test['date'].min():%d.%m.%Y}–{test['date'].max():%d.%m.%Y}")
+
 @st.cache_data(show_spinner='Symulacja AS-IS vs AI (30 przebiegów)…')
 def sym(h_bytes, t_bytes):
     h, t, te_, _ = policz(h_bytes, t_bytes)
