@@ -1,7 +1,8 @@
-"""SECOND LIFE - ratowanie wartości leków zagrożonych przeterminowaniem (moduł AI Navigator).
+"""SECOND LIFE - ratowanie wartości leków zagrożonych przeterminowaniem (moduł AI Inventory Copilot).
 Wszystkie parametry kosztowe i popytowe to ZAŁOŻENIA (dane syntetyczne), nie dane NEUCA."""
 import numpy as np, pandas as pd
 
+# opcjonalna kolumna: refundowany (True = brak promocji, cena urzędowa)
 KOLUMNY = ['magazyn', 'sku_id', 'sku_name', 'category', 'partia_id', 'ilosc', 'dni_do_waznosci', 'unit_cost_pln', 'price_pln', 'temperature', 'popyt_dzienny']
 DOMYSLNE = dict(
     prog_obserwacji=0.7,        # partia 'obserwuj', gdy zapas (FEFO) pokrywa >= 70% popytu do końca ważności
@@ -64,7 +65,8 @@ def plan(p, par=None):
             zostalo -= n
             if zostalo < 1: break
         # 2. promocja: dodatkowa sprzedaż = popyt * elastyczność * rabat * dni; korzyść = przychód po rabacie
-        if zostalo >= 1 and T >= par['min_dni_promocji'] and cena * (1 - par['rabat']) > 0 and b.popyt_dzienny > 0:
+        refund = bool(b.get('refundowany', False)) if 'refundowany' in r.columns else False  # leki refundowane: cena urzędowa, brak promocji
+        if zostalo >= 1 and not refund and T >= par['min_dni_promocji'] and cena * (1 - par['rabat']) > 0 and b.popyt_dzienny > 0:
             dod = par['elastycznosc'] * par['rabat'] * b.popyt_dzienny * T
             n = int(min(zostalo, np.floor(dod)))
             if n >= 1:
