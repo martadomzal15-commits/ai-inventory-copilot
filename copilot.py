@@ -1,4 +1,4 @@
-"""AI Inventory Copilot - moduł prognozy popytu (używany w Colab i w aplikacji Streamlit)."""
+"""AI Navigator - moduł prognozy popytu (używany w Colab i w aplikacji Streamlit)."""
 import pandas as pd, numpy as np, lightgbm as lgb
 
 FEATURES = ['lag_1','lag_2','lag_4','lag_52','ma4','std4','woy','month','sku_num']
